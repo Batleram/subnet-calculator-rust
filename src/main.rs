@@ -2,14 +2,21 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use std::{convert::TryInto, fmt::format, io::Write, time::Instant};
+use std::{
+    convert::TryInto,
+    fs::{self, OpenOptions},
+    io::Write,
+    time::Instant,
+};
 
 type IP = [u32; 4];
+static DEBUG: bool = true;
 
 fn main() {
     // get ip
     let mut ip_in = String::new();
     print!("Enter Ip: ");
+
     let _ = std::io::stdout().flush();
     std::io::stdin()
         .read_line(&mut ip_in)
@@ -43,13 +50,27 @@ fn main() {
     let net_size: u32 = u32::pow(2, 32 - target_sub);
     let net_upper_bound: u32 = u32::pow(2, target_sub - subnet as u32) * net_size;
 
-    let now = Instant::now();
+    let mut now = Instant::now();
     let subs = calcSubnet(0, net_upper_bound, net_size, ip);
-    println!("{}s", now.elapsed().as_millis() as f32 / 1000.0);
-    println!("{} elements", subs.len());
-    println!("{:?}", subs[subs.len() - 1]);
+    let _ = subs[subs.len() - 1].strip_suffix(",");
+    if DEBUG {
+        println!("{}s for calculation", now.elapsed().as_millis() as f32 / 1000.0);
+        println!("{} elements", subs.len());
+        // println!("Last Element: \n{:?}", subs[subs.len() - 1]);
+    }
+
+    now = Instant::now();
+    let file_name = format!("{}_{}_{}.json", convSegIpStr(ip), target_sub, subnet);
+    let _ = fs::remove_file(&file_name);
+    let _ = fs::File::create(&file_name);
+    let mut file = OpenOptions::new().append(true).open(file_name).unwrap();
+    let _ = writeln!(file, "[\n");
     for i in subs.iter() {
-        // println!("{}", i);
+        let _ = write!(file, "{}", i);
+    }
+    let _ = write!(file, "\n]");
+    if DEBUG {
+        println!("{}s for write", now.elapsed().as_millis() as f32 / 1000.0);
     }
 }
 
