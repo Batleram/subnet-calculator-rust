@@ -5,7 +5,7 @@
 use std::{
     convert::TryInto,
     fs::{self, OpenOptions},
-    io::Write,
+    io::{BufWriter, Write},
     time::Instant,
 };
 
@@ -54,7 +54,10 @@ fn main() {
     let subs = calcSubnet(0, net_upper_bound, net_size, ip);
     let _ = subs[subs.len() - 1].strip_suffix(",");
     if DEBUG {
-        println!("{}s for calculation", now.elapsed().as_millis() as f32 / 1000.0);
+        println!(
+            "{}s for calculation",
+            now.elapsed().as_millis() as f32 / 1000.0
+        );
         println!("{} elements", subs.len());
         // println!("Last Element: \n{:?}", subs[subs.len() - 1]);
     }
@@ -62,9 +65,10 @@ fn main() {
     now = Instant::now();
     let file_name = format!("{}_{}_{}.json", convSegIpStr(ip), target_sub, subnet);
     let _ = fs::remove_file(&file_name);
-    let _ = fs::File::create(&file_name);
-    let mut file = OpenOptions::new().append(true).open(file_name).unwrap();
-    let _ = writeln!(file, "[\n");
+    // let _ = fs::File::create(&file_name);
+    // let mut file = OpenOptions::new().append(true).open(file_name).unwrap();
+    let mut file = BufWriter::new(fs::File::create(&file_name).unwrap());
+    let _ = write!(file, "[");
     for i in subs.iter() {
         let _ = write!(file, "{}", i);
     }
@@ -109,13 +113,14 @@ fn convSubBin(sub: usize) -> String {
 fn incIpByN(ip: &mut IP, mut n: u32, start: usize) -> IP {
     // let mut ip: IP = _ip;
     // let mut n = _n;
+    let pos: usize = 4 - start;
     if n > 65535 {
         *ip = incIpByN(ip, n / 256, start + 1);
         n = n % 256;
     }
-    ip[4 - start] += n;
-    while ip[4 - start] > 255 {
-        ip[4 - start] -= 256;
+    ip[pos] += n;
+    while ip[pos] > 255 {
+        ip[pos] -= 256;
         *ip = incIpByN(ip, 1, start + 1);
     }
     return *ip;
